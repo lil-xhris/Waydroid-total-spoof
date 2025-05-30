@@ -21,7 +21,7 @@ This repository contains a script to spoof and modify your **Waydroid** environm
 
 ### 1. **Gaming (e.g., Free Fire)**
 
-Many mobile games, including **Free Fire**, actively try to detect emulators to prevent unfair advantages. By spoofing your Waydroid device to look like a legitimate phone (e.g., Pixel, Samsung, or other real models), you can hide the fact that you are using an emulator and avoid detection. This gives you a more legit gameplay experience and avoids potential bans due to being flagged as an emulator. or getting ur acc banned
+Many mobile games, including **Free Fire**, actively try to detect emulators to prevent unfair advantages. By spoofing your Waydroid device to look like a legitimate phone (e.g., Pixel, Samsung, or other real models), you can hide the fact that you are using an emulator and avoid detection. This gives you a more legit gameplay experience and avoids potential bans due to being flagged as an emulator.
 
 ### 2. **Testing Android Applications**
 
