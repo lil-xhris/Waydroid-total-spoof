@@ -40,4 +40,4 @@ For privacy enthusiasts, spoofing allows you to avoid tracking tied to your actu
    git clone https://github.com/lil-xhris/Waydroid-total-spoof.git
    cd Waydroid-total-spoof
    chmod +x waydroid.sh
-   ./waydroid.sh
+   ./V2.0.sh
