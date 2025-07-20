@@ -1,0 +1,112 @@
+#!/bin/bash
+# Spoof device info in Waydroid via waydroid.cfg and regenerate waydroid_base.prop
+
+CONFIG_FILE="/var/lib/waydroid/waydroid.cfg"
+
+declare -A DEVICES=(
+  [1]="Pixel 5|redfin|google/redfin/redfin:11/RQ3A.211001.001/eng.electr:user/release-keys"
+  [2]="Pixel 4 XL|coral|google/coral/coral:11/RQ3A.210705.001/eng.electr:user/release-keys"
+  [3]="Pixel 6|oriole|google/oriole/oriole:13/TQ3A.230805.001/eng.electr:user/release-keys"
+  [4]="Pixel 7|panther|google/panther/panther:14/UPB5.230623.003/eng.electr:user/release-keys"
+  [5]="Samsung S10|beyond1|samsung/beyond1xx/beyond1:10/QP1A.190711.020/G973FXXU3ASIE:user/release-keys"
+  [6]="Samsung S21|o1q|samsung/o1q/o1q:12/SP1A.210812.016/G991BXXU4BULF:user/release-keys"
+  [7]="Infinix Zero 5G|X6815|Infinix/X6815/X6815:11/RP1A.200720.011/123456:user/release-keys"
+  [8]="OnePlus 8T|kebab|OnePlus/kebab/kebab:11/RP1A.200720.011/210123:user/release-keys"
+  [9]="OnePlus 7 Pro|guacamole|OnePlus/guacamole/guacamole:10/QKQ1.190716.003/202345:user/release-keys"
+  [10]="Tecno Camon 18P|CH7n|TECNO/CH7n/CH7n:11/RP1A.200720.011/456789:user/release-keys"
+  [11]="Huawei P30|ELE-L29|HUAWEI/ELE-L29/HWELE:10/HUAWEIELE-L29/10.1.0.123:user/release-keys"
+  [12]="Redmi Note 10|mojito|xiaomi/mojito/mojito:11/RKQ1.201004.002/V12.0.1:user/release-keys"
+  [13]="Xperia 5 II|XQ-AS52|Sony/XQ-AS52/XQ-AS52:11/58.1.A.5.330:user/release-keys"
+  [14]="Motorola G Stylus|sofia|motorola/sofia/sofia:10/QPBS30.80-51-10:user/release-keys"
+  [15]="Realme GT Neo|RMX3031|realme/RMX3031/RMX3031:11/RP1A.200720.011:user/release-keys"
+  [16]="Nokia X20|Quicksilver|nokia/Quicksilver/Quicksilver:12/SP1A.210812.016:user/release-keys"
+  [17]="Asus ROG Phone 5|I005DA|asus/I005DA/I005DA:11/RKQ1.201022.002:user/release-keys"
+  [18]="Lenovo Legion Y90|Halo|lenovo/Halo/Halo:12/SKQ1.211006.001:user/release-keys"
+  [19]="Vivo V21|PD2101F|vivo/PD2101F/PD2101F:11/RP1A.200720.011:user/release-keys"
+  [20]="Honor 9X|STK-LX1|HONOR/STK-LX1/HWSTK-H:10/HONORSTK-LX1/10.0.0.210:user/release-keys"
+)
+
+echo "Select a device to spoof:"
+for i in "${!DEVICES[@]}"; do echo "$i) ${DEVICES[$i]%%|*}"; done
+read -p "Enter number: " choice
+
+DEVICE="${DEVICES[$choice]}"
+[ -z "$DEVICE" ] && echo "Invalid choice!" && exit 1
+
+MODEL="${DEVICE%%|*}"
+DEVICE_CODE="${DEVICE#*|}"; DEVICE_CODE="${DEVICE_CODE%%|*}"
+FINGERPRINT="${DEVICE##*|}"
+RAND_ID=$(tr -dc 'a-f0-9' </dev/urandom | head -c 16)
+
+echo "Updating Waydroid props for: $MODEL ($DEVICE_CODE)"
+
+# Backup
+cp "$CONFIG_FILE" "$CONFIG_FILE.bak"
+
+# Overwrite [properties] section
+sed -i '/^\[properties\]/,$d' "$CONFIG_FILE"
+cat <<EOF >> "$CONFIG_FILE"
+[properties]
+# -- Device Spoof --
+ro.product.model=$MODEL
+ro.product.brand=google
+ro.product.manufacturer=Google
+ro.product.device=$DEVICE_CODE
+ro.product.name=$DEVICE_CODE
+ro.system.build.product=$DEVICE_CODE
+ro.system.build.flavor=${DEVICE_CODE}-user
+ro.build.fingerprint=$FINGERPRINT
+ro.system.build.description=${FINGERPRINT##*/} release-keys
+ro.bootimage.build.fingerprint=$FINGERPRINT
+ro.build.display.id=$FINGERPRINT
+ro.build.tags=release-keys
+ro.vendor.build.fingerprint=$FINGERPRINT
+ro.vendor.build.id=${FINGERPRINT#*:}; ro.vendor.build.tags=release-keys
+ro.vendor.build.type=user
+ro.odm.build.tags=release-keys
+
+# -- Verified Boot + Root/ADB Hiding --
+ro.boot.verifiedbootstate=green
+ro.boot.flash.locked=1
+ro.secure=1
+ro.debuggable=0
+ro.adb.secure=1
+persist.sys.usb.config=none
+ro.build.type=user
+ro.build.selinux=1
+ro.kernel.qemu=0
+ro.secureboot.enable=1
+ro.boot.selinux=enforcing
+ro.build.characteristics=nosdcard
+ro.product.cpu.abi=arm64-v8a
+ro.zygote=zygote64_32
+
+# -- Android Identity Spoofing --
+settings_global_android_id=$RAND_ID
+ro.serialno=$RAND_ID
+ro.boot.serialno=$RAND_ID
+
+# -- Gaming & Performance Props --
+debug.hwui.renderer=skiagl
+debug.egl.hw=1
+debug.composition.type=gpu
+persist.sys.ui.hw=1
+hwui.render_dirty_regions=false
+persist.sys.gpu.force=1
+ro.opengles.version=196610
+persist.sys.use_16bpp_alpha=1
+ro.surface_flinger.max_frame_buffer_acquired_buffers=3
+persist.graphics.vulkan.disable=false
+persist.vulkan.enabled=1
+persist.sys.sf.color_saturation=1.1
+ro.sf.lcd_density=440
+ro.build.version.sdk=30
+ro.build.version.release=11
+ro.build.version.codename=REL
+ro.build.version.security_patch=2022-10-01
+EOF
+
+echo "[✓] Props updated. Now regenerating waydroid_base.prop..."
+waydroid upgrade --offline
+
+echo "[✓] Done! Reboot Waydroid to apply changes."
